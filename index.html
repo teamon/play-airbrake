@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Play-airbrake : Airbrake.io notifier for Play 2.0" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Play-airbrake</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/teamon/play-airbrake">View on GitHub</a>
+
+          <h1 id="project_title">Play-airbrake</h1>
+          <h2 id="project_tagline">Airbrake.io notifier for Play 2.0</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/teamon/play-airbrake/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/teamon/play-airbrake/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h2>Airbrake.io notifier for Play 2.0</h2>
+
+<h2>Instalation</h2>
+
+<p>Add <code>play-airbrake</code> to your <code>project/Build.scala</code> file</p>
+
+<div class="highlight"><pre><span class="k">val</span> <span class="n">appDependencies</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span>
+  <span class="s">"eu.teamon"</span> <span class="o">%%</span> <span class="s">"play-airbrake"</span> <span class="o">%</span> <span class="s">"0.1.0"</span>
+<span class="o">)</span>
+
+<span class="k">val</span> <span class="n">main</span> <span class="k">=</span> <span class="nc">PlayProject</span><span class="o">(</span><span class="n">appName</span><span class="o">,</span> <span class="n">appVersion</span><span class="o">,</span> <span class="n">appDependencies</span><span class="o">,</span> <span class="n">mainLang</span> <span class="k">=</span> <span class="nc">SCALA</span><span class="o">).</span><span class="n">settings</span><span class="o">(</span>
+  <span class="n">resolvers</span> <span class="o">+=</span> <span class="s">"teamon.eu repo"</span> <span class="n">at</span> <span class="s">"http://repo.teamon.eu"</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Your <code>app/Global.scala</code> should look like this</p>
+
+<div class="highlight"><pre><span class="k">import</span> <span class="nn">play.api._</span>
+<span class="k">import</span> <span class="nn">play.api.mvc._</span>
+<span class="k">import</span> <span class="nn">play.airbrake.Airbrake</span>
+
+<span class="k">object</span> <span class="nc">Global</span> <span class="k">extends</span> <span class="nc">GlobalSettings</span> <span class="o">{</span>
+
+  <span class="k">override</span> <span class="k">def</span> <span class="n">onError</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">RequestHeader</span><span class="o">,</span> <span class="n">ex</span><span class="k">:</span> <span class="kt">Throwable</span><span class="o">)</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="nc">Airbrake</span><span class="o">.</span><span class="n">notify</span><span class="o">(</span><span class="n">request</span><span class="o">,</span> <span class="n">ex</span><span class="o">)</span>
+    <span class="k">super</span><span class="o">.</span><span class="n">onError</span><span class="o">(</span><span class="n">request</span><span class="o">,</span> <span class="n">ex</span><span class="o">)</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<h2>Configuration</h2>
+
+<table>
+<tr>
+<th>Key</th>
+    <th></th>
+    <th>Description</th>
+  </tr>
+<tr>
+<td><code>airbrake.apiKey</code></td>
+    <td>String, <strong>required</strong>
+</td>
+    <td>airbrake project api key</td>
+  </tr>
+<tr>
+<td><code>airbrake.ssl</code></td>
+    <td>Boolean, optional, defaults to <code>false</code>
+</td>
+    <td>set to <code>true</code> if you have airbrake plan with SSL support</td>
+  </tr>
+<tr>
+<td><code>airbrake.enabled</code></td>
+    <td>Boolean, optional, default to <code>Play.isProd</code>
+</td>
+    <td>optionally enable/disable notifications for different environment</td>
+  </tr>
+</table>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Play-airbrake maintained by <a href="https://github.com/teamon">teamon</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
