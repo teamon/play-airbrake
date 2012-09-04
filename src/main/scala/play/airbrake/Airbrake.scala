@@ -49,15 +49,17 @@ object Airbrake {
         <url>{ request.method + " " + request.uri }</url>
         <component/>
         <action/>
-        <session>
-          { formatVars(request.session.data) }
-        </session>
+        { formatSession(request.session.data) }
       </request>
       <server-environment>
         <environment-name>{ app.mode }</environment-name>
       </server-environment>
     </notice>
   }
+
+  protected def formatSession(vars: Map[String, String]) =
+    if(!vars.isEmpty) <session>{ formatVars(vars) }</session>
+    else Nil
 
   protected def formatVars(vars: Map[String, String]) = vars.map { case (key, value) =>
     <var key={ key }>{ value }</var>

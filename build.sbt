@@ -2,7 +2,7 @@ organization := "eu.teamon"
 
 name := "play-airbrake"
 
-version := "0.1.0"
+version := "0.1.1"
 
 scalaVersion := "2.9.1"
 
@@ -17,3 +17,4 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   "play" %% "play" % Option(System.getenv("PLAY_VERSION")).getOrElse("2.0") % "compile"
 )
+
