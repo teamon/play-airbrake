@@ -18,3 +18,7 @@ libraryDependencies ++= Seq(
   "play" %% "play" % Option(System.getenv("PLAY_VERSION")).getOrElse("2.0") % "compile"
 )
 
+seq(scalajarsSettings:_*)
+
+scalajarsProjectName := "play-airbrake"
+
