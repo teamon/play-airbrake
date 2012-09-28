@@ -6,7 +6,7 @@ Add `play-airbrake` to your `project/Build.scala` file
 
 ``` scala
 val appDependencies = Seq(
-  "eu.teamon" %% "play-airbrake" % "0.1.1"
+  "eu.teamon" %% "play-airbrake" % "0.2.0"
 )
 
 val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings(
@@ -29,6 +29,16 @@ object Global extends GlobalSettings {
   }
 
 }
+
+```
+
+For javascript notifications
+
+```scala
+
+<head>
+  @Html(play.airbrake.Airbrake.js)
+</head>
 
 ```
 

@@ -5,25 +5,33 @@ import play.api.PlayException.UsefulException
 import play.api.mvc.RequestHeader
 import play.api.libs.ws.WS
 import play.api.libs.concurrent.Akka
+import play.api.Play.current
 
 object Airbrake {
+  private lazy val app = implicitly[Application]
+  private lazy val enabled = app.configuration.getBoolean("airbrake.enabled") getOrElse { Play.isProd }
+  private lazy val apiKey = app.configuration.getString("airbrake.apiKey") getOrElse { throw PlayException("Configuration error", "Could not find airbrake.apiKey in settings") }
+  private lazy val ssl = app.configuration.getBoolean("airbrake.ssl").getOrElse(false)
 
-  def notify(request: RequestHeader, th: Throwable)(implicit app: Application) = {
-    val enabled = app.configuration.getBoolean("airbrake.enabled") getOrElse { Play.isProd }
-
-    if(enabled){
-      val apiKey = app.configuration.getString("airbrake.apiKey") getOrElse { throw PlayException("Configuration error", "Could not find airbrake.apiKey in settings") }
-      val ex = liftThrowable(th)
-
-      Akka.future {
-        val ssl = app.configuration.getBoolean("airbrake.ssl").getOrElse(false)
-        val scheme = if(ssl) "https" else "http"
-        WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, request, ex)).onRedeem { response =>
-          Logger.info("Notice sent to Airbrake:" + "\n" + response.body)
-        }
+  def notify(request: RequestHeader, th: Throwable) = if(enabled){
+    Akka.future {
+      val scheme = if(ssl) "https" else "http"
+      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, request, liftThrowable(th))).onRedeem { response =>
+        Logger.info("Exception notice sent to Airbrake")
       }
     }
   }
+
+  def js = if(enabled) { """
+    <script src="http://cdn.airbrake.io/notifier.min.js"></script>
+    <script type="text/javascript">
+      Airbrake.setKey(%s);
+      Airbrake.setHost('api.airbrake.io');
+      Airbrake.setEnvironment(%s);
+      Airbrake.setGuessFunctionName(true);
+    </script>
+    """.format(apiKey, app.mode)
+  } else ""
 
   protected def liftThrowable(th: Throwable) = th match {
     case e: PlayException.UsefulException => e
