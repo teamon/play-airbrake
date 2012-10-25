@@ -6,6 +6,7 @@ import play.api.mvc.RequestHeader
 import play.api.libs.ws.WS
 import play.api.libs.concurrent.Akka
 import play.api.Play.current
+import scala.collection.JavaConversions._
 
 object Airbrake {
   private lazy val app = implicitly[Application]
@@ -13,10 +14,22 @@ object Airbrake {
   private lazy val apiKey = app.configuration.getString("airbrake.apiKey") getOrElse { throw PlayException("Configuration error", "Could not find airbrake.apiKey in settings") }
   private lazy val ssl = app.configuration.getBoolean("airbrake.ssl").getOrElse(false)
 
+  
   def notify(request: RequestHeader, th: Throwable) = if(enabled){
     Akka.future {
       val scheme = if(ssl) "https" else "http"
-      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, request, liftThrowable(th))).onRedeem { response =>
+      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, request.method, request.uri, request.session.data, liftThrowable(th))).onRedeem { response =>
+        Logger.info("Exception notice sent to Airbrake")
+      }
+    }
+  }
+    
+  def notify(method:String, uri:String, data:java.util.Map[String,String], th: Throwable) = if(enabled){
+    
+    val myMap = scala.collection.JavaConversions.mapAsScalaMap(data).toMap
+    Akka.future {
+      val scheme = if(ssl) "https" else "http"
+      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, method, uri, myMap, liftThrowable(th))).onRedeem { response =>
         Logger.info("Exception notice sent to Airbrake")
       }
     }
@@ -37,8 +50,8 @@ object Airbrake {
     case e: PlayException.UsefulException => e
     case e => UnexpectedException(unexpected = Some(e))
   }
-
-  protected def formatNotice(app: Application, apiKey: String, request: RequestHeader, ex: UsefulException) = {
+  
+  protected def formatNotice(app: Application, apiKey: String, method: String, uri: String, data: Map[String,String], ex: UsefulException) = {
     <notice version="2.2">
       <api-key>{ apiKey }</api-key>
       <notifier>
@@ -54,10 +67,10 @@ object Airbrake {
         </backtrace>
       </error>
       <request>
-        <url>{ request.method + " " + request.uri }</url>
+        <url>{ method + " " + uri }</url>
         <component/>
         <action/>
-        { formatSession(request.session.data) }
+        { formatSession(data) }
       </request>
       <server-environment>
         <environment-name>{ app.mode }</environment-name>
