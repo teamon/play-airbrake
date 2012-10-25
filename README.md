@@ -42,8 +42,6 @@ For javascript notifications
 
 ```
 
-```
-
 For java integration
 
 ```java
