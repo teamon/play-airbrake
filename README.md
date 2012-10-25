@@ -42,6 +42,22 @@ For javascript notifications
 
 ```
 
+```
+
+For java integration
+
+```java
+  @Override
+	public Result onError(RequestHeader request, Throwable t) {
+		Map<String, String> data = new HashMap<String, String>();
+		for (Entry<String, String[]> value : request.headers().entrySet()) {
+			data.put(value.getKey(), Arrays.deepToString(value.getValue()));
+		}
+		Airbrake.notify(request.method(), request.uri(), data, t);
+		return super.onError(request, t);
+	}
+```
+
 ## Configuration
 
 <table>
