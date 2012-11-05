@@ -6,7 +6,7 @@ Add `play-airbrake` to your `project/Build.scala` file
 
 ``` scala
 val appDependencies = Seq(
-  "eu.teamon" %% "play-airbrake" % "0.2.0"
+  "eu.teamon" %% "play-airbrake" % "0.2.1"
 )
 
 val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings(
@@ -45,14 +45,12 @@ For javascript notifications
 For java integration your app/Global.java should look like this
 
 ```java
-@Override
-public Result onError(RequestHeader request, Throwable t) {
-	Map<String, String> data = new HashMap<String, String>();
-	for (Entry<String, String[]> value : request.headers().entrySet()) {
-		data.put(value.getKey(), Arrays.deepToString(value.getValue()));
-	}
-	Airbrake.notify(request.method(), request.uri(), data, t);
-	return super.onError(request, t);
+class Global extends GlobalSettings {
+  @Override
+  public Result onError(RequestHeader request, Throwable t) {
+    Airbrake.notify(request, t);
+    return super.onError(request, t);
+  }
 }
 ```
 

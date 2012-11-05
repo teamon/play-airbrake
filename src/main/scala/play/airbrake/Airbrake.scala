@@ -14,26 +14,44 @@ object Airbrake {
   private lazy val apiKey = app.configuration.getString("airbrake.apiKey") getOrElse { throw PlayException("Configuration error", "Could not find airbrake.apiKey in settings") }
   private lazy val ssl = app.configuration.getBoolean("airbrake.ssl").getOrElse(false)
 
-  
-  def notify(request: RequestHeader, th: Throwable) = if(enabled){
+  /**
+    * Scala API
+    *
+    * {{{
+    * // app/Global.scala
+    * override def onError(request: RequestHeader, ex: Throwable) = {
+    *   Airbrake.notify(request, ex)
+    *   super.onError(request, ex)
+    * }
+    * }}}
+    */
+  def notify(request: RequestHeader, th: Throwable): Unit = if(enabled) _notify(request.method, request.uri, request.session.data, th)
+
+  /**
+    * Java API
+    *
+    * {{{
+    * // app/Global.java
+    * @Override
+    * public Result onError(RequestHeader request, Throwable t) {
+    *   Airbrake.notify(request, t);
+    *   return super.onError(request, t);
+    * }
+    * }}}
+    */
+  def notify(request: play.mvc.Http.RequestHeader, th: Throwable): Unit = if(enabled){
+    val data = request.headers.toMap.mapValues(_.toString)
+    _notify(request.method, request.uri, data, th)
+  }
+
+  protected def _notify(method: String, uri: String, data: Map[String, String], th: Throwable): Unit =
     Akka.future {
       val scheme = if(ssl) "https" else "http"
-      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, request.method, request.uri, request.session.data, liftThrowable(th))).onRedeem { response =>
+      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, method, uri, data, liftThrowable(th))).onRedeem { response =>
         Logger.info("Exception notice sent to Airbrake")
       }
     }
-  }
-    
-  def notify(method:String, uri:String, data:java.util.Map[String,String], th: Throwable) = if(enabled){
-    
-    val myMap = scala.collection.JavaConversions.mapAsScalaMap(data).toMap
-    Akka.future {
-      val scheme = if(ssl) "https" else "http"
-      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, method, uri, myMap, liftThrowable(th))).onRedeem { response =>
-        Logger.info("Exception notice sent to Airbrake")
-      }
-    }
-  }
+
 
   def js = if(enabled) { """
     <script src="http://cdn.airbrake.io/notifier.min.js"></script>
@@ -50,7 +68,7 @@ object Airbrake {
     case e: PlayException.UsefulException => e
     case e => UnexpectedException(unexpected = Some(e))
   }
-  
+
   protected def formatNotice(app: Application, apiKey: String, method: String, uri: String, data: Map[String,String], ex: UsefulException) = {
     <notice version="2.2">
       <api-key>{ apiKey }</api-key>
@@ -96,5 +114,5 @@ object Airbrake {
     val line = "%s.%s(%s)" format (e.getClassName, e.getMethodName, e.getFileName)
     <line file={line} number={e.getLineNumber.toString}/>
   }
-  
+
 }
