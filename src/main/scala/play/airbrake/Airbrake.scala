@@ -1,17 +1,19 @@
 package play.airbrake
 
 import play.api._
-import play.api.PlayException.UsefulException
+import play.api.PlayException
+import play.api.UnexpectedException
 import play.api.mvc.RequestHeader
 import play.api.libs.ws.WS
 import play.api.libs.concurrent.Akka
 import play.api.Play.current
 import scala.collection.JavaConversions._
+import play.api.libs.concurrent.Execution.Implicits._
 
 object Airbrake {
-  private lazy val app = implicitly[Application]
+  private lazy val app = play.api.Play.current
   private lazy val enabled = app.configuration.getBoolean("airbrake.enabled") getOrElse { Play.isProd }
-  private lazy val apiKey = app.configuration.getString("airbrake.apiKey") getOrElse { throw PlayException("Configuration error", "Could not find airbrake.apiKey in settings") }
+  private lazy val apiKey = app.configuration.getString("airbrake.apiKey") getOrElse { throw UnexpectedException(Some("Could not find airbrake.apiKey in settings")) }
   private lazy val ssl = app.configuration.getBoolean("airbrake.ssl").getOrElse(false)
 
   /**
@@ -47,7 +49,7 @@ object Airbrake {
   protected def _notify(method: String, uri: String, data: Map[String, String], th: Throwable): Unit =
     Akka.future {
       val scheme = if(ssl) "https" else "http"
-      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, method, uri, data, liftThrowable(th))).onRedeem { response =>
+      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, method, uri, data, liftThrowable(th))).onComplete { response =>
         Logger.info("Exception notice sent to Airbrake")
       }
     }
@@ -65,7 +67,7 @@ object Airbrake {
   } else ""
 
   protected def liftThrowable(th: Throwable) = th match {
-    case e: PlayException.UsefulException => e
+    case e: PlayException => e
     case e => UnexpectedException(unexpected = Some(e))
   }
 
@@ -81,7 +83,7 @@ object Airbrake {
         <class>{ ex.title }</class>
         <message>{ ex.description }</message>
         <backtrace>
-          { ex.cause.toList.flatMap(e => formatStacktrace(e.getStackTrace)) }
+          { ex.cause.getStackTrace.flatMap(e => formatStacktrace(e)) }
         </backtrace>
       </error>
       <request>
@@ -104,13 +106,7 @@ object Airbrake {
     <var key={ key }>{ value }</var>
   }
 
-  protected def formatTitle(ex: UsefulException) =
-    ex.title + ex.cause.map(e => " :: " + e.getClass.getName).getOrElse("")
-
-  protected def formatMessage(ex: UsefulException) =
-    ex.description + ex.cause.map(e => "\n---\n" + e.getMessage).getOrElse("")
-
-  protected def formatStacktrace(trace: Array[StackTraceElement]) = trace.flatMap { e =>
+  protected def formatStacktrace(e: StackTraceElement) = {
     val line = "%s.%s(%s)" format (e.getClassName, e.getMethodName, e.getFileName)
     <line file={line} number={e.getLineNumber.toString}/>
   }

@@ -6,7 +6,7 @@ Add `play-airbrake` to your `project/Build.scala` file
 
 ``` scala
 val appDependencies = Seq(
-  "eu.teamon" %% "play-airbrake" % "0.2.1"
+  "eu.teamon" %% "play-airbrake" % "0.3.0"
 )
 
 val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings(

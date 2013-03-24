@@ -2,9 +2,9 @@ organization := "eu.teamon"
 
 name := "play-airbrake"
 
-version := "0.2.1"
+version := "0.3.0-SNAPSHOT"
 
-scalaVersion := "2.9.1"
+scalaVersion := "2.10.0"
 
 scalacOptions ++= Seq("-Xlint","-deprecation", "-unchecked","-encoding", "utf8")
 
@@ -15,7 +15,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "play" %% "play" % Option(System.getenv("PLAY_VERSION")).getOrElse("2.0.4") % "compile"
+  "play" % "play_2.10" % Option(System.getenv("PLAY_VERSION")).getOrElse("2.1.0") % "compile"
 )
 
 seq(scalajarsSettings:_*)
