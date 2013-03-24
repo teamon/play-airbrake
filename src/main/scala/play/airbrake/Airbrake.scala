@@ -15,6 +15,7 @@ object Airbrake {
   private lazy val enabled = app.configuration.getBoolean("airbrake.enabled") getOrElse { Play.isProd }
   private lazy val apiKey = app.configuration.getString("airbrake.apiKey") getOrElse { throw UnexpectedException(Some("Could not find airbrake.apiKey in settings")) }
   private lazy val ssl = app.configuration.getBoolean("airbrake.ssl").getOrElse(false)
+  private lazy val endpoint = app.configuration.getString("airbrake.endpoint") getOrElse "api.airbrake.io/notifier_api/v2/notices"
 
   /**
     * Scala API
@@ -49,7 +50,7 @@ object Airbrake {
   protected def _notify(method: String, uri: String, data: Map[String, String], th: Throwable): Unit =
     Akka.future {
       val scheme = if(ssl) "https" else "http"
-      WS.url(scheme + "://api.airbrake.io/notifier_api/v2/notices").post(formatNotice(app, apiKey, method, uri, data, liftThrowable(th))).onComplete { response =>
+      WS.url(scheme + "://" + endpoint).post(formatNotice(app, apiKey, method, uri, data, liftThrowable(th))).onComplete { response =>
         Logger.info("Exception notice sent to Airbrake")
       }
     }

@@ -76,8 +76,14 @@ class Global extends GlobalSettings {
 
   <tr>
     <td><code>airbrake.enabled</code></td>
-    <td>Boolean, optional, default to <code>Play.isProd</code></td>
+    <td>Boolean, optional, defaults to <code>Play.isProd</code></td>
     <td>optionally enable/disable notifications for different environment</td>
+  </tr>
+
+  <tr>
+    <td><code>airbrake.endpoint</code></td>
+    <td>String, optional, defaults to <code>api.airbrake.io/notifier_api/v2/notices</code></td>
+    <td>point notifier to you custom airbrake compatible service (e.g. errbit)</td>
   </tr>
 
 </table>
