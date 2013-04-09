@@ -38,11 +38,11 @@
 <p>Add <code>play-airbrake</code> to your <code>project/Build.scala</code> file</p>
 
 <div class="highlight"><pre><span class="k">val</span> <span class="n">appDependencies</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span>
-  <span class="s">"eu.teamon"</span> <span class="o">%%</span> <span class="s">"play-airbrake"</span> <span class="o">%</span> <span class="s">"0.2.1"</span>
+  <span class="s">"eu.teamon"</span> <span class="o">%%</span> <span class="s">"play-airbrake"</span> <span class="o">%</span> <span class="s">"0.3.0"</span>
 <span class="o">)</span>
 
 <span class="k">val</span> <span class="n">main</span> <span class="k">=</span> <span class="nc">PlayProject</span><span class="o">(</span><span class="n">appName</span><span class="o">,</span> <span class="n">appVersion</span><span class="o">,</span> <span class="n">appDependencies</span><span class="o">,</span> <span class="n">mainLang</span> <span class="k">=</span> <span class="nc">SCALA</span><span class="o">).</span><span class="n">settings</span><span class="o">(</span>
-  <span class="n">resolvers</span> <span class="o">+=</span> <span class="s">"scalajars.org repo"</span> <span class="n">at</span> <span class="s">"http://scalajars.org/repository"</span>
+  <span class="n">resolvers</span> <span class="o">+=</span> <span class="s">"teamon.eu repo"</span> <span class="n">at</span> <span class="s">"http://repo.teamon.eu"</span>
 <span class="o">)</span>
 </pre></div>
 
@@ -105,9 +105,15 @@
   </tr>
 <tr>
 <td><code>airbrake.enabled</code></td>
-    <td>Boolean, optional, default to <code>Play.isProd</code>
+    <td>Boolean, optional, defaults to <code>Play.isProd</code>
 </td>
     <td>optionally enable/disable notifications for different environment</td>
+  </tr>
+<tr>
+<td><code>airbrake.endpoint</code></td>
+    <td>String, optional, defaults to <code>api.airbrake.io/notifier_api/v2/notices</code>
+</td>
+    <td>point notifier to you custom airbrake compatible service (e.g. errbit)</td>
   </tr>
 </table>
       </section>
