@@ -43,7 +43,7 @@ object Airbrake {
     * }}}
     */
   def notify(request: play.mvc.Http.RequestHeader, th: Throwable): Unit = if(enabled){
-    val data = request.headers.toMap.mapValues(_.toString)
+    val data = request.headers.toMap.mapValues(_.toList.toString)
     _notify(request.method, request.uri, data, th)
   }
 

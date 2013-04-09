@@ -6,6 +6,8 @@ version := "0.3.1-SNAPSHOT"
 
 scalaVersion := "2.10.0"
 
+scalaBinaryVersion := "2.10"
+
 scalacOptions ++= Seq("-Xlint","-deprecation", "-unchecked","-encoding", "utf8")
 
 resolvers ++= Seq(
@@ -15,10 +17,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "play" % "play_2.10" % Option(System.getenv("PLAY_VERSION")).getOrElse("2.1.0") % "compile"
+  "play" %% "play" % Option(System.getenv("PLAY_VERSION")).getOrElse("2.1.0") % "compile"
 )
 
-seq(scalajarsSettings:_*)
-
-scalajarsProjectName := "play-airbrake"
-
+publishTo := Some(Resolver.file("local-maven", new File("/Users/teamon/code/maven")))

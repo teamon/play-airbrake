@@ -10,7 +10,7 @@ val appDependencies = Seq(
 )
 
 val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings(
-  resolvers += "scalajars.org repo" at "http://scalajars.org/repository"
+  resolvers += "teamon.eu repo" at "http://repo.teamon.eu"
 )
 ```
 
