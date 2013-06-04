@@ -59,9 +59,9 @@ object Airbrake {
   def js = if(enabled) { """
     <script src="http://cdn.airbrake.io/notifier.min.js"></script>
     <script type="text/javascript">
-      Airbrake.setKey(%s);
+      Airbrake.setKey('%s');
       Airbrake.setHost('api.airbrake.io');
-      Airbrake.setEnvironment(%s);
+      Airbrake.setEnvironment('%s');
       Airbrake.setGuessFunctionName(true);
     </script>
     """.format(apiKey, app.mode)
