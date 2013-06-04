@@ -32,7 +32,7 @@ object Global extends GlobalSettings {
 
 ```
 
-For javascript notifications
+For javascript notifications (not free plan)
 
 ```scala
 
