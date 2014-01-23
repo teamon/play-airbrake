@@ -2,9 +2,9 @@ organization := "eu.teamon"
 
 name := "play-airbrake"
 
-version := "0.3.1-SNAPSHOT"
+version := "0.3.2-SNAPSHOT"
 
-scalaVersion := "2.10.0"
+scalaVersion := "2.10.3"
 
 scalaBinaryVersion := "2.10"
 
@@ -17,7 +17,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "play" %% "play" % Option(System.getenv("PLAY_VERSION")).getOrElse("2.1.0") % "compile"
+  "com.typesafe.play" %% "play" % Option(System.getenv("PLAY_VERSION")).getOrElse("2.2.0") % "compile"
 )
 
 publishTo := Some(Resolver.file("local-maven", new File("/Users/teamon/code/maven")))

@@ -8,6 +8,7 @@ import play.api.libs.ws.WS
 import play.api.libs.concurrent.Akka
 import play.api.Play.current
 import scala.collection.JavaConversions._
+import scala.concurrent.Future
 import play.api.libs.concurrent.Execution.Implicits._
 
 object Airbrake {
@@ -48,7 +49,7 @@ object Airbrake {
   }
 
   protected def _notify(method: String, uri: String, data: Map[String, String], th: Throwable): Unit =
-    Akka.future {
+    Future {
       val scheme = if(ssl) "https" else "http"
       WS.url(scheme + "://" + endpoint).post(formatNotice(app, apiKey, method, uri, data, liftThrowable(th))).onComplete { response =>
         Logger.info("Exception notice sent to Airbrake")
@@ -77,7 +78,7 @@ object Airbrake {
       <api-key>{ apiKey }</api-key>
       <notifier>
         <name>play-airbrake</name>
-        <version>0.1.0</version>
+        <version>0.3.2</version>
         <url>http://github.com/teamon/play-airbrake</url>
       </notifier>
       <error>
