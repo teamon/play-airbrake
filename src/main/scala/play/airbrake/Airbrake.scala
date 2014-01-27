@@ -10,13 +10,19 @@ import play.api.Play.current
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import play.api.libs.concurrent.Execution.Implicits._
+import scala.util.Success
 
 object Airbrake {
   private lazy val app = play.api.Play.current
-  private lazy val enabled = app.configuration.getBoolean("airbrake.enabled") getOrElse { Play.isProd }
-  private lazy val apiKey = app.configuration.getString("airbrake.apiKey") getOrElse { throw UnexpectedException(Some("Could not find airbrake.apiKey in settings")) }
-  private lazy val ssl = app.configuration.getBoolean("airbrake.ssl").getOrElse(false)
-  private lazy val endpoint = app.configuration.getString("airbrake.endpoint") getOrElse "api.airbrake.io/notifier_api/v2/notices"
+  private lazy val conf = app.configuration
+  private lazy val enabled = conf.getBoolean("airbrake.enabled") getOrElse Play.isProd
+  private lazy val apiKey = conf.getString("airbrake.apiKey") getOrElse { throw UnexpectedException(Some("Could not find airbrake.apiKey in settings")) }
+  private lazy val ssl = conf.getBoolean("airbrake.ssl") getOrElse false
+  private lazy val mode = conf.getString("airbrake.environment") getOrElse app.mode
+  private lazy val endpoint = conf.getString("airbrake.endpoint") getOrElse "api.airbrake.io/notifier_api/v2/notices"
+  private lazy val version = conf.getString("airbrake.appVersion").orElse(conf.getString("application.version")) getOrElse "0.1"
+
+  private val AirbrakeSuccessCode = 200
 
   /**
     * Scala API
@@ -52,7 +58,12 @@ object Airbrake {
     Future {
       val scheme = if(ssl) "https" else "http"
       WS.url(scheme + "://" + endpoint).post(formatNotice(app, apiKey, method, uri, data, liftThrowable(th))).onComplete { response =>
-        Logger.info("Exception notice sent to Airbrake")
+        response match{
+          case Success(r) if r.status == AirbrakeSuccessCode =>
+            Logger.info("Exception notice sent to Airbrake.")
+          case _ =>
+            Logger.warn("Failed to report exception to Airbrake. Response: " + response.map(_.statusText))
+        }
       }
     }
 
@@ -65,7 +76,7 @@ object Airbrake {
       Airbrake.setEnvironment(%s);
       Airbrake.setGuessFunctionName(true);
     </script>
-    """.format(apiKey, app.mode)
+    """.format(apiKey, mode)
   } else ""
 
   protected def liftThrowable(th: Throwable) = th match {
@@ -74,11 +85,11 @@ object Airbrake {
   }
 
   protected def formatNotice(app: Application, apiKey: String, method: String, uri: String, data: Map[String,String], ex: UsefulException) = {
-    <notice version="2.2">
+    <notice version="2.3">
       <api-key>{ apiKey }</api-key>
       <notifier>
         <name>play-airbrake</name>
-        <version>0.3.2</version>
+        <version>0.3.3</version>
         <url>http://github.com/teamon/play-airbrake</url>
       </notifier>
       <error>
@@ -95,7 +106,8 @@ object Airbrake {
         { formatSession(data) }
       </request>
       <server-environment>
-        <environment-name>{ app.mode }</environment-name>
+        <environment-name>{ mode }</environment-name>
+        <app-version>{ version }</app-version>
       </server-environment>
     </notice>
   }
@@ -109,8 +121,8 @@ object Airbrake {
   }
 
   protected def formatStacktrace(e: StackTraceElement) = {
-    val line = "%s.%s(%s)" format (e.getClassName, e.getMethodName, e.getFileName)
-    <line file={line} number={e.getLineNumber.toString}/>
+    val file = s"${e.getClassName}.${e.getFileName}()"
+    <line file={file} number={e.getLineNumber.toString} method={e.getMethodName}/>
   }
 
 }
