@@ -85,5 +85,14 @@ class Global extends GlobalSettings {
     <td>String, optional, defaults to <code>api.airbrake.io/notifier_api/v2/notices</code></td>
     <td>point notifier to you custom airbrake compatible service (e.g. errbit)</td>
   </tr>
-
+  <tr>
+    <td><code>airbrake.environment</code></td>
+    <td>String, optional, defaults to <code>Play.current.mode</code></td>
+    <td>defines the environment the application is executed in, e.g. <code>Prod</code></td>
+  </tr>
+  <tr>
+    <td><code>airbrake.appVersion</code></td>
+    <td>String, optional, defaults to configuration value <code>application.version</code> or to <code>0.1</code> if none of the before mentioned is present</td>
+    <td>defines the current version of the application</td>
+  </tr>
 </table>
