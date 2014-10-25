@@ -21,4 +21,12 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-ws" % Option(System.getenv("PLAY_VERSION")).getOrElse("2.3.5") % "compile"
 )
 
-publishTo := Some(Resolver.file("local-maven", new File("/Users/teamon/code/maven")))
+publishTo <<= version { (version: String) =>
+  val rootDir = "/srv/maven/"
+  val path =
+    if (version.trim.endsWith("SNAPSHOT"))
+      rootDir + "snapshots/" 
+    else 
+      rootDir + "releases/" 
+  Some(Resolver.sftp("scm.io intern repo", "maven.scm.io", 44144, path))
+}
