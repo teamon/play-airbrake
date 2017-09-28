@@ -1,6 +1,6 @@
-## Airbrake.io notifier for Play 2.0
+## Airbrake.io notifier for Play 2.6
 
-## Instalation
+## Installation (for original teamon branch)
 
 Add `play-airbrake` to your `project/Build.scala` file
 
