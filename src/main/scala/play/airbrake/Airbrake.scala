@@ -1,21 +1,25 @@
-package play.airbrake
+package plugins
 
+import javax.inject.Inject
+
+import com.typesafe.config.Config
 import play.api._
-import play.api.PlayException
-import play.api.UnexpectedException
 import play.api.mvc.RequestHeader
-import play.api.libs.ws.WS
-import play.api.libs.concurrent.Akka
-import play.api.Play.current
-import scala.collection.JavaConversions._
+import play.api.libs.ws.WSClient
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.inject.{Binding, Module}
 
-object Airbrake {
-  private lazy val app = play.api.Play.current
-  private lazy val enabled = app.configuration.getBoolean("airbrake.enabled") getOrElse { Play.isProd }
-  private lazy val apiKey = app.configuration.getString("airbrake.apiKey") getOrElse { throw UnexpectedException(Some("Could not find airbrake.apiKey in settings")) }
-  private lazy val ssl = app.configuration.getBoolean("airbrake.ssl").getOrElse(false)
-  private lazy val endpoint = app.configuration.getString("airbrake.endpoint") getOrElse "api.airbrake.io/notifier_api/v2/notices"
+import scala.collection.JavaConversions._
+import scala.concurrent.Future
+import scala.util.Try
+
+class Airbrake @Inject() (config: Config, environment: Environment, wsClient: WSClient) {
+
+  val enabled: Boolean = Try(config.getBoolean("airbrake.enabled")) getOrElse { environment.mode == Mode.Prod }
+  val apiKey: String = config.getString("airbrake.apiKey")
+  val ssl: Boolean = Try(config.getBoolean("airbrake.ssl")).getOrElse(false)
+  val endpoint: String = Try(config.getString("airbrake.endpoint")) getOrElse "api.airbrake.io/notifier_api/v2/notices"
+
 
   /**
     * Scala API
@@ -28,7 +32,8 @@ object Airbrake {
     * }
     * }}}
     */
-  def notify(request: RequestHeader, th: Throwable): Unit = if(enabled) _notify(request.method, request.uri, request.session.data, th)
+  def notify(request: RequestHeader, th: Throwable): Unit =
+    if(enabled) _notify(request.method, request.uri, request.session.data, th, Some(request.headers.toMap), Some(request.queryString))
 
   /**
     * Java API
@@ -43,15 +48,23 @@ object Airbrake {
     * }}}
     */
   def notify(request: play.mvc.Http.RequestHeader, th: Throwable): Unit = if(enabled){
-    val data = request.headers.toMap.mapValues(_.toList.toString)
-    _notify(request.method, request.uri, data, th)
+    val data = request.getHeaders.toMap.mapValues(_.toList.toString).toMap
+    _notify(request.method, request.uri, data, th, None, None)
   }
 
-  protected def _notify(method: String, uri: String, data: Map[String, String], th: Throwable): Unit =
-    Akka.future {
+  /**
+    * Notify when not a Play-related error.
+    */
+  def notify(description: String, th: Throwable, method: Option[String], uri: Option[String]): Unit = if (enabled) {
+    _notify(method getOrElse "(none)", (uri getOrElse "(none)"), Map(("description" -> description)), th, None, None)
+  }
+
+
+  protected def _notify(method: String, uri: String, data: Map[String, String], th: Throwable, headers: Option[Map[String, Seq[String]]], params: Option[Map[String, Seq[String]]]): Future[Unit] =
+    Future.successful {
       val scheme = if(ssl) "https" else "http"
-      WS.url(scheme + "://" + endpoint).post(formatNotice(app, apiKey, method, uri, data, liftThrowable(th))).onComplete { response =>
-        Logger.info("Exception notice sent to Airbrake")
+      wsClient.url(scheme + "://" + endpoint).post(formatNotice(environment.mode.toString, apiKey, method, uri, data, liftThrowable(th), headers, params)).onComplete { response =>
+        Logger.error("Exception notice sent to Airbrake", th)
       }
     }
 
@@ -64,7 +77,7 @@ object Airbrake {
       Airbrake.setEnvironment('%s');
       Airbrake.setGuessFunctionName(true);
     </script>
-    """.format(apiKey, app.mode)
+    """.format(apiKey, environment.mode.toString)
   } else ""
 
   protected def liftThrowable(th: Throwable) = th match {
@@ -72,12 +85,12 @@ object Airbrake {
     case e => UnexpectedException(unexpected = Some(e))
   }
 
-  protected def formatNotice(app: Application, apiKey: String, method: String, uri: String, data: Map[String,String], ex: UsefulException) = {
+  protected def formatNotice(mode: String, apiKey: String, method: String, uri: String, data: Map[String,String], ex: UsefulException, headers: Option[Map[String, Seq[String]]], params: Option[Map[String, Seq[String]]]) = {
     <notice version="2.2">
       <api-key>{ apiKey }</api-key>
       <notifier>
         <name>play-airbrake</name>
-        <version>0.1.0</version>
+        <version>0.3.1-SNAPSHOT</version>
         <url>http://github.com/teamon/play-airbrake</url>
       </notifier>
       <error>
@@ -91,12 +104,26 @@ object Airbrake {
         <url>{ method + " " + uri }</url>
         <component/>
         <action/>
+        { formatParams(params) }
         { formatSession(data) }
+        { formatHeaders(headers) }
       </request>
       <server-environment>
-        <environment-name>{ app.mode }</environment-name>
+        <environment-name>{ mode }</environment-name>
       </server-environment>
     </notice>
+  }
+
+  protected def formatParams(data: Option[Map[String, Seq[String]]]) =
+    if (data.isDefined && !data.get.isEmpty) <params>{ formatValuesMap(data.get) }</params>
+    else Nil
+
+  protected def formatHeaders(data: Option[Map[String, Seq[String]]]) =
+    if (data.isDefined && !data.get.isEmpty) <cgi-data>{ formatValuesMap(data.get) } </cgi-data>
+    else Nil
+
+  protected def formatValuesMap(map: Map[String, Seq[String]]) = map.flatMap { case (key, seq) =>
+    seq map { value => <var key={ key }>{ value }</var> }
   }
 
   protected def formatSession(vars: Map[String, String]) =
@@ -109,7 +136,21 @@ object Airbrake {
 
   protected def formatStacktrace(e: StackTraceElement) = {
     val line = "%s.%s(%s)" format (e.getClassName, e.getMethodName, e.getFileName)
-    <line file={line} number={e.getLineNumber.toString}/>
+      <line file={line} number={e.getLineNumber.toString}/>
   }
+}
+
+class AirbrakeModule @Inject() (config: Config, environment: Environment, wsClient: WSClient) extends Module {
+
+  val airbrake: Airbrake = new Airbrake(config, environment, wsClient)
+
+  override def bindings(environment: Environment, playConfig: Configuration): Seq[Binding[_]] = {
+    Seq.empty
+  }
+
+
+  def notify(request: RequestHeader, th: Throwable): Unit = airbrake.notify(request, th)
+
+  def notify(request: play.mvc.Http.RequestHeader, th: Throwable): Unit = airbrake.notify(request, th)
 
 }
