@@ -6,14 +6,17 @@ import com.typesafe.config.Config
 import play.api._
 import play.api.mvc.RequestHeader
 import play.api.libs.ws.WSClient
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.inject.{Binding, Module}
 
 import scala.collection.JavaConversions._
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-class Airbrake @Inject() (config: Config, environment: Environment, wsClient: WSClient) {
+/**
+ *  https://github.com/nelsonblaha/play-airbrake
+ */
+
+class Airbrake @Inject() (config: Config, environment: Environment, wsClient: WSClient, implicit val ec: ExecutionContext) {
 
   val enabled: Boolean = Try(config.getBoolean("airbrake.enabled")) getOrElse { environment.mode == Mode.Prod }
   val apiKey: String = config.getString("airbrake.apiKey")
@@ -140,9 +143,9 @@ class Airbrake @Inject() (config: Config, environment: Environment, wsClient: WS
   }
 }
 
-class AirbrakeModule @Inject() (config: Config, environment: Environment, wsClient: WSClient) extends Module {
+class AirbrakeModule @Inject() (config: Config, environment: Environment, wsClient: WSClient, ec: ExecutionContext) extends Module {
 
-  val airbrake: Airbrake = new Airbrake(config, environment, wsClient)
+  val airbrake: Airbrake = new Airbrake(config, environment, wsClient, ec)
 
   override def bindings(environment: Environment, playConfig: Configuration): Seq[Binding[_]] = {
     Seq.empty
