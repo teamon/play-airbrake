@@ -5,18 +5,19 @@ import javax.inject.Inject
 import com.typesafe.config.Config
 import play.api._
 import play.api.mvc.RequestHeader
-import play.api.libs.ws.WSClient
+import play.api.libs.ws.StandaloneWSClient
 import play.api.inject.{Binding, Module}
 
 import scala.collection.JavaConversions._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
+import play.api.libs.ws.WSBody
 
 /**
  *  https://github.com/nelsonblaha/play-airbrake
  */
 
-class Airbrake @Inject() (config: Config, environment: Environment, wsClient: WSClient, implicit val ec: ExecutionContext) {
+class Airbrake @Inject() (config: Config, environment: Environment, wsClient: StandaloneWSClient, implicit val ec: ExecutionContext) {
 
   val enabled: Boolean = Try(config.getBoolean("airbrake.enabled")) getOrElse { environment.mode == Mode.Prod }
   val apiKey: String = config.getString("airbrake.apiKey")
@@ -65,8 +66,9 @@ class Airbrake @Inject() (config: Config, environment: Environment, wsClient: WS
 
   protected def _notify(method: String, uri: String, data: Map[String, String], th: Throwable, headers: Option[Map[String, Seq[String]]], params: Option[Map[String, Seq[String]]]): Future[Unit] =
     Future.successful {
-      val scheme = if(ssl) "https" else "http"
-      wsClient.url(scheme + "://" + endpoint).post(formatNotice(environment.mode.toString, apiKey, method, uri, data, liftThrowable(th), headers, params)).onComplete { response =>
+     val scheme = if(ssl) "https" else "http"
+     val body = formatNotice(environment.mode.toString, apiKey, method, uri, data, liftThrowable(th), headers, params)
+     wsClient.url(scheme + "://" + endpoint).post(body).onComplete { response =>
         Logger.error("Exception notice sent to Airbrake", th)
       }
     }
@@ -143,7 +145,7 @@ class Airbrake @Inject() (config: Config, environment: Environment, wsClient: WS
   }
 }
 
-class AirbrakeModule @Inject() (config: Config, environment: Environment, wsClient: WSClient, ec: ExecutionContext) extends Module {
+class AirbrakeModule @Inject() (config: Config, environment: Environment, wsClient: StandaloneWSClient, ec: ExecutionContext) extends Module {
 
   val airbrake: Airbrake = new Airbrake(config, environment, wsClient, ec)
 
