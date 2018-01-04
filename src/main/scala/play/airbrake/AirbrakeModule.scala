@@ -11,13 +11,14 @@ import play.api.inject.{Binding, Module}
 import scala.collection.JavaConversions._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-import play.api.libs.ws.WSBody
+import play.api.libs.ws.XMLBodyWritables
 
 /**
  *  https://github.com/nelsonblaha/play-airbrake
  */
 
-class Airbrake @Inject() (config: Config, environment: Environment, wsClient: StandaloneWSClient, implicit val ec: ExecutionContext) {
+class Airbrake @Inject() (config: Config, environment: Environment, wsClient: StandaloneWSClient, implicit val ec: ExecutionContext) 
+  extends XMLBodyWritables {
 
   val enabled: Boolean = Try(config.getBoolean("airbrake.enabled")) getOrElse { environment.mode == Mode.Prod }
   val apiKey: String = config.getString("airbrake.apiKey")
